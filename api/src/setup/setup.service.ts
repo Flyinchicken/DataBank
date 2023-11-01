@@ -1,16 +1,16 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import type { CreateAdminDto, SetupDto } from './dto/setup.dto.js';
+import type { CreateAdminDto, SetupDto } from './dto/setup.dto';
 import type { SetupState, TDataset } from '@databank/types';
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model } from 'mongoose';
 
-import { DatasetsService } from '@/datasets/datasets.service.js';
-import { UsersService } from '@/users/users.service.js';
+import { DatasetsService } from '@/datasets/datasets.service';
+import { UsersService } from '@/users/users.service';
 
-import { SetupConfig } from './schemas/setup-config.schema.js';
+import { SetupConfig } from './schemas/setup-config.schema';
 
 @Injectable()
 export class SetupService {

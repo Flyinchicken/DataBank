@@ -43,6 +43,7 @@
   "name": "Nom",
   "no": "Non",
   "noResultsFound": "Aucun résultat trouvé",
+  "notCSVorTSV": "{{filename}} n'est pas un fichier CSV ou TSV. Veuillez télécharger un fichier avec l'extension .csv ou .tsv",
   "nullable": "Permettre les valeurs nulles",
   "other": "Autre",
   "password": "mot de passe",

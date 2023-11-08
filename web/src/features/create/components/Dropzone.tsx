@@ -17,8 +17,19 @@ export const Dropzone = ({ file, setFile }: DropzoneProps) => {
   const handleDrop = useCallback(
     (acceptedFiles: File[], rejections: FileRejection[]) => {
       for (const { errors, file } of rejections) {
-        notifications.addNotification({ message: t('invalidFileError', { filename: file.name }), type: 'error' });
         console.error(errors);
+        for (const e of errors) {
+          if (e.code === 'too-many-files') {
+            notifications.addNotification({ message: t('tooManyFilesError'), type: 'error' });
+            break;
+          }
+          if (e.code === 'file-invalid-type') {
+            notifications.addNotification({ message: t('notCSVorTSV', { filename: file.name }), type: 'error' });
+          } else {
+            notifications.addNotification({ message: t('invalidFileError', { filename: file.name }), type: 'error' });
+            break;
+          }
+        }
       }
       setFile(acceptedFiles[0]!);
     },
@@ -27,8 +38,7 @@ export const Dropzone = ({ file, setFile }: DropzoneProps) => {
 
   const { getInputProps, getRootProps, isDragActive } = useDropzone({
     accept: {
-      'text/csv': ['.csv'],
-      'text/plain': ['.csv', '.tsv']
+      'text/csv': ['.csv', '.tsv']
     },
     maxFiles: 1,
     onDrop: handleDrop

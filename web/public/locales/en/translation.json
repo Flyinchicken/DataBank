@@ -19,7 +19,7 @@
   "deleteDataset": "Delete Dataset",
   "description": "Description",
   "download": "Download",
-  "dropHere": "Please upload your dataset by either dragging and dropping it into this area or clicking to select a file",
+  "dropHere": "Please upload your dataset by either dragging and dropping it into this area or clicking to select a file. Only CSV or TSV file with extension .csv or .tsv is allowed. MAX file size 1GB.",
   "edit": "Edit",
   "email": "Email",
   "fileParseError": "Failed to parse file. Please ensure your file is formatted correctly. Detailed error information is available in the browser console.",

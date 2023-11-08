@@ -56,14 +56,14 @@ export type DropzoneResult = Simplify<{
 }>;
 
 export type DatasetDropzoneProps = {
-  /** The maximum file size in bytes (default = 10MB) */
+  /** The maximum file size in bytes (default = 1GB) */
   maxFileSize?: number;
 
   /** Callback to be invoked when the file has been successfully parsed */
   onSubmit: (result: DropzoneResult) => void;
 };
 
-export const DatasetDropzone = ({ maxFileSize = 10485760, onSubmit }: DatasetDropzoneProps) => {
+export const DatasetDropzone = ({ maxFileSize = 1073741824, onSubmit }: DatasetDropzoneProps) => {
   const [file, setFile] = useState<File | null>(null);
   // const [result, setResult] = useState<DropzoneResult | { isProcessing: boolean } | null>(null);
   const [result, setResult] = useState<DropzoneResult | null>(null);

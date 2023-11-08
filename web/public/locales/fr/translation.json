@@ -19,7 +19,7 @@
   "deleteDataset": "Supprimer la base de données",
   "description": "Description",
   "download": "Télécharger",
-  "dropHere": "Veuillez télécharger votre base de données en la faisant glisser et en la déposant dans cette zone ou en cliquant pour sélectionner un fichier",
+  "dropHere": "Veuillez télécharger votre base de données en la faisant glisser et en la déposant dans cette zone ou en cliquant pour sélectionner un fichier. Seuls les fichiers CSV ou TSV avec l'extension .csv ou .tsv sont autorisés. Taille maximale du fichier 1 Go.",
   "edit": "Modifier",
   "email": "courriel",
   "fileParseError": "Échec de l'analyse du fichier. Veuillez vous assurer que votre fichier est correctement formaté. Des informations détaillées sur les erreurs sont disponibles dans la console du navigateur.",

@@ -12,6 +12,7 @@ import { I18nModule } from './i18n/i18n.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SetupModule } from './setup/setup.module';
 import { UsersModule } from './users/users.module';
+import { ProjectsModule } from './projects/projects.module';
 
 @Module({
   imports: [
@@ -36,7 +37,8 @@ import { UsersModule } from './users/users.module';
       }
     ]),
     UsersModule,
-    PrismaModule.forRoot()
+    PrismaModule.forRoot(),
+    ProjectsModule
   ],
   providers: [
     {

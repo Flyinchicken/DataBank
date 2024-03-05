@@ -42,6 +42,8 @@ model User {
   setup      Setup?
   Dataset    Dataset[] @relation(fields: [datasetId], references: [id])
   datasetId  String[]  @db.ObjectId
+  Project    Project[] @relation(fields: [projectId], references: [id])
+  projectId  String[]  @db.ObjectId
 }
 
 enum UserRole {
@@ -211,3 +213,21 @@ enum VerificationMethod {
   CONFIRM_EMAIL
   REGEX_EMAIL
 }
+
+// ---------------- Projects ----------------
+model Project {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  externalId  String?
+  description String?
+  users       User[]   @relation(fields: [userIds], references: [id])
+  userIds     String[] @db.ObjectId
+  expiry      DateTime
+  // projectDatasets    ProjectDataset[]
+}
+
+// type ProjectDataset {
+//   dataset Dataset
+//   filters
+//   transformationOnColumns
+// }

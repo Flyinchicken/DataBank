@@ -17,9 +17,9 @@ import { I18nService } from '@/i18n/i18n.service';
 import { MailService } from '@/mail/mail.service';
 import { SetupService } from '@/setup/setup.service';
 
-import { UsersService } from '../users/users.service';
-import { CreateAccountDto } from './dto/create-account.dto';
-import { VerifyAccountDto } from './dto/verify-account.dto';
+import { UsersService } from '../users/users.service.js';
+import { CreateAccountDto } from './dto/create-account.dto.js';
+import { VerifyAccountDto } from './dto/verify-account.dto.js';
 
 @Injectable()
 export class AuthService {
@@ -31,13 +31,13 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly usersService: UsersService,
     private readonly setupService: SetupService
-  ) { }
+  ) {}
 
   /** Create a new standard account with verification required */
   async createAccount(createAccountDto: CreateAccountDto): Promise<Omit<User, 'hashedPassword'>> {
     return this.usersService.createUser({
       ...createAccountDto,
-      role: 'STANDARD',
+      role: 'STANDARD'
     });
   }
 
@@ -66,23 +66,24 @@ export class AuthService {
 
     // If there is an existing, non-expired code, use that since we record attempts for security
     let confirmEmailInfo: ConfirmEmailInfo;
-    if (user.confirmEmailInfo && user.confirmEmailInfo.expiry.getTime() > Date.now()) {
+    if (user.confirmEmailInfo && user.confirmEmailInfo.expiryAt > new Date(Date.now())) {
       confirmEmailInfo = user.confirmEmailInfo;
     } else {
       confirmEmailInfo = {
         attemptsMade: 0,
         confirmEmailCode: randomInt(100000, 1000000),
-        expiry: new Date(Date.now() + parseInt(this.config.getOrThrow('VALIDATION_TIMEOUT')))
+        expiryAt: new Date(Date.now() + parseInt(this.config.getOrThrow('VALIDATION_TIMEOUT')))
       };
       await this.usersService.updateConfirmEmailInfo(user.email, confirmEmailInfo);
     }
 
     await this.mailService.sendMail({
       subject: this.i18n.translate(locale, 'confirmationEmail.body'),
-      text: this.i18n.translate(locale, 'confirmationEmail.body') + '\n\n' + `Code : ${confirmEmailInfo.confirmEmailCode}`,
+      text:
+        this.i18n.translate(locale, 'confirmationEmail.body') + '\n\n' + `Code : ${confirmEmailInfo.confirmEmailCode}`,
       to: user.email
     });
-    return { attemptsMade: confirmEmailInfo.attemptsMade, expiry: confirmEmailInfo.expiry };
+    return { attemptsMade: confirmEmailInfo.attemptsMade, expiry: confirmEmailInfo.expiryAt };
   }
 
   async verifyAccount({ code }: VerifyAccountDto, { email }: CurrentUser): Promise<AuthPayload> {
@@ -93,7 +94,7 @@ export class AuthService {
       throw new ForbiddenException('Validation code is undefined. Please request a validation code.');
     }
 
-    const isExpired = user.confirmEmailInfo.expiry.getTime() < Date.now();
+    const isExpired = user.confirmEmailInfo.expiryAt < new Date(Date.now());
     if (isExpired) {
       throw new ForbiddenException('Validation code is expired. Please request a new validation code.');
     }
@@ -114,11 +115,10 @@ export class AuthService {
     }
 
     if (user.confirmEmailInfo?.confirmEmailCode !== code) {
-      await this.usersService.updateConfirmEmailInfo(user.email,
-        {
-          ...user.confirmEmailInfo,
-          attemptsMade: ++user.confirmEmailInfo.attemptsMade
-        });
+      await this.usersService.updateConfirmEmailInfo(user.email, {
+        ...user.confirmEmailInfo,
+        attemptsMade: ++user.confirmEmailInfo.attemptsMade
+      });
       throw new ForbiddenException('Incorrect validation code. Please try again.');
     }
 
@@ -127,11 +127,16 @@ export class AuthService {
 
     /** Now the user has confirm their email, verify the user according to the verification method set by the admin */
     const verificationInfo = await this.setupService.getVerificationInfo();
-    const isVerified =
-      verificationInfo.userVerification.method === 'CONFIRM_EMAIL' ||
-      (verificationInfo.userVerification.method === 'REGEX_EMAIL' &&
-        verificationInfo.userVerification.emailRegex &&
-        new RegExp(verificationInfo.userVerification.emailRegex).test(user.email));
+    let isVerified: boolean;
+
+    if (verificationInfo.method === 'CONFIRM_EMAIL') {
+      isVerified = true;
+    } else if (verificationInfo.method === 'REGEX_EMAIL' && verificationInfo.emailRegex) {
+      isVerified = new RegExp(verificationInfo.emailRegex).test(user.email) ? true : false;
+    } else {
+      throw new Error(`Unexpected verification method: ${verificationInfo.method}`);
+    }
+
     if (isVerified) {
       await this.usersService.setVerified(user.email);
     }

@@ -6,25 +6,25 @@ import { ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { type Prisma, type User } from '@prisma/client';
 
-import { UsersService } from '../users.service';
-import { createUserDtoStubFactory } from './stubs/create-user.dto.stub';
+import { UsersService } from '../users.service.js';
+import { createUserDtoStubFactory } from './stubs/create-user.dto.stub.js';
 
-import type { CreateUserDto } from '../zod/user';
+import type { CreateUserDto } from '../zod/user.js';
 
 describe('UsersService', () => {
   let usersService: UsersService;
   let userModel: {
-    create: Mock<AnyFunction>,
-    findMany: Mock<AnyFunction>,
-    findUnique: Mock<AnyFunction>
+    create: Mock<AnyFunction>;
+    findMany: Mock<AnyFunction>;
+    findUnique: Mock<AnyFunction>;
   };
   const mockCrypto = {
     comparePassword: jest.fn(),
     hash: jest.fn(),
     hashPassword: jest.fn().mockImplementation((password: string) => {
-      return password + 'WOW'
+      return password + 'WOW';
     })
-  }
+  };
 
   // let cryptoService: CryptoService;
 
@@ -75,23 +75,23 @@ describe('UsersService', () => {
 
     describe('findByEmail', () => {
       it('should return the user object with the input email', () => {
-        userModel.findUnique.mockReturnValueOnce({ email: 'johnsmith@gmail.com' })
-        expect(usersService.findByEmail('johnsmith@gmail.com')).toEqual({ email: 'johnsmith@gmail.com' } as unknown as Prisma.Prisma__UserClient<User>);
-      })
+        userModel.findUnique.mockReturnValueOnce({ email: 'johnsmith@gmail.com' });
+        expect(usersService.findByEmail('johnsmith@gmail.com')).toEqual({
+          email: 'johnsmith@gmail.com'
+        } as unknown as Prisma.Prisma__UserClient<User>);
+      });
     });
 
     describe('getAll', () => {
       it('should return all users in the database', () => {
         userModel.findMany.mockImplementationOnce(() => {
-          return [
-            { email: 'johnsmith@gmail.com' },
-            { email: 'abc@outlook.com' }
-          ]
-        })
+          return [{ email: 'johnsmith@gmail.com' }, { email: 'abc@outlook.com' }];
+        });
         expect(usersService.getAll()).toEqual([
-          { email: 'johnsmith@gmail.com' }, { email: 'abc@outlook.com' }
-        ] as unknown as Promise<User[]>)
-      })
+          { email: 'johnsmith@gmail.com' },
+          { email: 'abc@outlook.com' }
+        ] as unknown as Promise<User[]>);
+      });
     });
   });
 });

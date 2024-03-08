@@ -6,7 +6,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { type Request } from 'express';
 
-import { type ProtectedRouteAccess, type RouteAccessType } from '../core/decorators/route-access.decorator';
+import { type ProtectedRouteAccess, type RouteAccessType } from '../core/decorators/route-access.decorator.js';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -16,7 +16,7 @@ export class AuthGuard implements CanActivate {
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
     private readonly reflector: Reflector
-  ) { }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();

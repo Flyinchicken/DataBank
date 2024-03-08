@@ -2,16 +2,16 @@ import { Body, Controller, HttpCode, HttpStatus, Post, Req } from '@nestjs/commo
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { type Request } from 'express';
 
-import { RouteAccess } from '../core/decorators/route-access.decorator';
-import { AuthService } from './auth.service';
-import { CreateAccountDto } from './dto/create-account.dto';
-import { LoginRequestDto } from './dto/login-request.dto';
-import { VerifyAccountDto } from './dto/verify-account.dto';
+import { RouteAccess } from '../core/decorators/route-access.decorator.js';
+import { AuthService } from './auth.service.js';
+import { CreateAccountDto } from './dto/create-account.dto.js';
+import { LoginRequestDto } from './dto/login-request.dto.js';
+import { VerifyAccountDto } from './dto/verify-account.dto.js';
 
 @ApiTags('Auth')
 @Controller({ path: 'auth' })
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @ApiOperation({ description: 'Create a new account as a standard user', summary: 'Create Account' })
   @Post('account')

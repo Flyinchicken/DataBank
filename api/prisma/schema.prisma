@@ -12,7 +12,7 @@ datasource db {
 
 // ---------------- Auth ----------------
 type ConfirmEmailInfo {
-  expiry           DateTime
+  expiryAt         DateTime
   attemptsMade     Int      @default(0)
   confirmEmailCode Int
 }
@@ -39,8 +39,7 @@ model User {
   confirmedAt DateTime?
 
   verifiedAt DateTime?
-  setup      Setup?
-  Dataset    Dataset[] @relation(fields: [datasetId], references: [id])
+  dataset    Dataset[] @relation(fields: [datasetId], references: [id])
   datasetId  String[]  @db.ObjectId
   Project    Project[] @relation(fields: [projectId], references: [id])
   projectId  String[]  @db.ObjectId
@@ -103,7 +102,7 @@ model TabularColumn {
   summaryPermission        PermissionLevel
   summary                  ColumnSummary
   dataPermission           PermissionLevel
-  TabularData              TabularData               @relation(fields: [tabularDataId], references: [id], onDelete: Cascade)
+  tabularData              TabularData               @relation(fields: [tabularDataId], references: [id], onDelete: Cascade)
   tabularDataId            String                    @unique @db.ObjectId()
   // store the actual data in a pl.series(array) depending on the type of the column
   stringData               String[]
@@ -120,12 +119,12 @@ model TabularColumn {
 }
 
 enum ColumnType {
-  BOOLEAN_COLUMN
-  STRING_COLUMN
-  INT_COLUMN
-  FLOAT_COLUMN
-  ENUM_COLUMN
-  DATETIME_COLUMN
+  BOOLEAN
+  STRING
+  INT
+  FLOAT
+  ENUM
+  DATETIME
 }
 
 enum PermissionLevel {
@@ -173,14 +172,14 @@ type DateTimeColumnSummary {
 
 // column validation
 type StringColumnValidation {
-  min   Int
-  max   Int?
-  regex String?
+  minLength Int?
+  maxLength Int?
+  regex     String?
 }
 
 type NumericColumnValidation {
-  min Float
-  max Float
+  min Float?
+  max Float?
 }
 
 type EnumColumnValidation {
@@ -188,9 +187,8 @@ type EnumColumnValidation {
 }
 
 type DatetimeColumnValidation {
-  min     DateTime
-  max     DateTime
-  passISO Boolean
+  min DateTime?
+  max DateTime?
 }
 
 // ---------------- Setup ----------------
@@ -198,8 +196,6 @@ model Setup {
   id               String           @id @default(auto()) @map("_id") @db.ObjectId
   createdAt        DateTime         @default(now()) @db.Date
   updatedAt        DateTime         @default(now()) @db.Date
-  admin            User             @relation(fields: [adminId], references: [id])
-  adminId          String           @unique @db.ObjectId
   userVerification UserVerification
 }
 

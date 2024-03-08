@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 
-import { DatasetsController } from './datasets.controller';
-import { DatasetsService } from './datasets.service';
+import { DatasetsController } from './datasets.controller.js';
+import { DatasetsService } from './datasets.service.js';
 
 @Module({
   controllers: [DatasetsController],
   exports: [DatasetsService],
-  imports: [],
   providers: [DatasetsService]
 })
-export class DatasetsModule { }
+export class DatasetsModule {}

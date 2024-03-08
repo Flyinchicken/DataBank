@@ -5,17 +5,17 @@ import { pl } from 'nodejs-polars';
 import { InjectModel, InjectPrismaClient } from '@/core/decorators/inject-prisma-client.decorator';
 import type { Model } from '@/prisma/prisma.types';
 
-import type { CreateTabularDatasetDto } from './zod/dataset';
+import type { CreateTabularDatasetDto } from './zod/dataset.js';
 
 @Injectable()
 export class DatasetsService {
   constructor(
-    @InjectModel('Dataset') private datasetModel: Model<"Dataset">,
+    @InjectModel('Dataset') private datasetModel: Model<'Dataset'>,
     @InjectModel('TabularColumn') private columnModel: Model<'TabularColumn'>,
     @InjectModel('TabularData') private tabularDataModel: Model<'TabularData'>,
-    @InjectModel('User') private userModel: Model<"User">,
+    @InjectModel('User') private userModel: Model<'User'>,
     @InjectPrismaClient() private prisma: PrismaClient
-  ) { }
+  ) {}
 
   async addManager(datasetId: string, managerId: string, managerIdToAdd: string) {
     const dataset = await this.canModifyDataset(datasetId, managerId);
@@ -27,7 +27,7 @@ export class DatasetsService {
     });
 
     if (!managerToAdd) {
-      throw new NotFoundException("Manager with id " + managerIdToAdd + " is not found!")
+      throw new NotFoundException('Manager with id ' + managerIdToAdd + ' is not found!');
     }
 
     const newDatasetIds = managerToAdd.datasetId;
@@ -40,7 +40,7 @@ export class DatasetsService {
       where: {
         id: managerIdToAdd
       }
-    })
+    });
 
     const newManagerIds = dataset.managerIds;
     newManagerIds.push(managerIdToAdd);
@@ -52,7 +52,7 @@ export class DatasetsService {
       where: {
         id: dataset.id
       }
-    })
+    });
 
     return await this.prisma.$transaction([updateNewManagerDatasetsIds, updateManager]);
   }
@@ -66,7 +66,7 @@ export class DatasetsService {
       where: {
         id: columnId
       }
-    })
+    });
   }
 
   async changeColumnMetadataPermission(columnId: string, currentUserId: string, permissionLevel: PermissionLevel) {
@@ -78,7 +78,7 @@ export class DatasetsService {
       where: {
         id: columnId
       }
-    })
+    });
   }
 
   async changeDatasetDataPermission(datasetId: string, currentUserId: string, permissionLevel: PermissionLevel) {
@@ -91,7 +91,8 @@ export class DatasetsService {
     const updateColumns = await this.columnModel.updateMany({
       data: {
         dataPermission: permissionLevel
-      }, where: {
+      },
+      where: {
         tabularDataId: tabularData.id
       }
     });
@@ -108,26 +109,42 @@ export class DatasetsService {
     const updateColumns = await this.columnModel.updateMany({
       data: {
         summaryPermission: permissionLevel
-      }, where: {
+      },
+      where: {
         tabularDataId: tabularData.id
       }
     });
     return updateColumns;
   }
 
-  async createDataset(createTabularDatasetDto: CreateTabularDatasetDto, file: Express.Multer.File | string, managerId: string) {
+  async createDataset(
+    createTabularDatasetDto: CreateTabularDatasetDto,
+    file: Express.Multer.File | string,
+    managerId: string
+  ) {
     let csvString: string;
     let df: pl.DataFrame;
-    if (typeof (file) === "string") {
-      csvString = file
+    if (typeof file === 'string') {
+      csvString = file;
     } else {
       // file received through the network is stored in memory buffer which is converted to a string
-      csvString = file.buffer.toString().replaceAll('\t', ',');  // polars has a bug parsing tsv, this is a hack for it to work
+      csvString = file.buffer.toString().replaceAll('\t', ','); // polars has a bug parsing tsv, this is a hack for it to work
     }
     df = pl.readCSV(csvString, { tryParseDates: true });
 
+    // for datasets without primary keys, generate a sequential id column
+    if (createTabularDatasetDto.primaryKeys.length == 0) {
+      const indexArray = [];
+      for (let i = 0; i < df.shape.height; i++) {
+        indexArray.push(i);
+      }
+      const indexSeries = pl.Series('id', indexArray);
+      df.insertAtIdx(0, indexSeries);
+      createTabularDatasetDto.primaryKeys.push('id');
+    }
+
     if (!this.primaryKeyCheck(createTabularDatasetDto.primaryKeys, df)) {
-      throw new ForbiddenException("Dataset failed primary keys check!");
+      throw new ForbiddenException('Dataset failed primary keys check!');
     }
 
     const dataset = await this.datasetModel.create({
@@ -138,7 +155,7 @@ export class DatasetsService {
         managerIds: [managerId],
         name: createTabularDatasetDto.name
       }
-    })
+    });
 
     const tabularData = await this.tabularDataModel.create({
       data: {
@@ -147,13 +164,12 @@ export class DatasetsService {
       }
     });
 
-
     for (let col of df.getColumns()) {
       // create a float column
       if (col.isFloat()) {
         await this.columnModel.create({
           data: {
-            dataPermission: "MANAGER",
+            dataPermission: 'MANAGER',
             floatData: col.toArray(),
             name: col.name,
             nullable: col.nullCount() != 0,
@@ -173,9 +189,9 @@ export class DatasetsService {
               },
               notNullCount: col.len() - col.nullCount()
             },
-            summaryPermission: "MANAGER",
+            summaryPermission: 'MANAGER',
             tabularDataId: tabularData.id,
-            type: "FLOAT_COLUMN"
+            type: 'FLOAT'
           }
         });
         continue;
@@ -185,7 +201,7 @@ export class DatasetsService {
       if (col.isNumeric()) {
         await this.columnModel.create({
           data: {
-            dataPermission: "MANAGER",
+            dataPermission: 'MANAGER',
             intData: col.toArray(),
             name: col.name,
             nullable: col.nullCount() != 0,
@@ -207,9 +223,9 @@ export class DatasetsService {
               },
               notNullCount: col.len() - col.nullCount()
             },
-            summaryPermission: "MANAGER",
+            summaryPermission: 'MANAGER',
             tabularDataId: tabularData.id,
-            type: 'INT_COLUMN'
+            type: 'INT'
           }
         });
         continue;
@@ -220,7 +236,7 @@ export class DatasetsService {
         await this.columnModel.create({
           data: {
             booleanData: col.toArray(),
-            dataPermission: "MANAGER",
+            dataPermission: 'MANAGER',
             name: col.name,
             nullable: col.nullCount() != 0,
             summary: {
@@ -232,24 +248,23 @@ export class DatasetsService {
               },
               notNullCount: col.len() - col.nullCount()
             },
-            summaryPermission: "MANAGER",
+            summaryPermission: 'MANAGER',
             tabularDataId: tabularData.id,
-            type: 'BOOLEAN_COLUMN'
+            type: 'BOOLEAN'
           }
         });
         continue;
       }
 
-      // create a boolean column
+      // create a datetime column
       if (col.isDateTime()) {
         await this.columnModel.create({
           data: {
-            dataPermission: "MANAGER",
+            dataPermission: 'MANAGER',
             // date is represented as time difference from 1970-Jan-01
             datetimeColumnValidation: {
               max: new Date(),
-              min: "1970-01-01",
-              passISO: true
+              min: '1970-01-01'
             },
             // datetime is represented as milliseconds from 1970-Jan-01 00:00:00
             datetimeData: col.toArray(),
@@ -259,13 +274,13 @@ export class DatasetsService {
               count: col.len(),
               datetimeSummary: {
                 max: new Date(),
-                min: "1970-01-01"
+                min: '1970-01-01'
               },
               notNullCount: col.len() - col.nullCount()
             },
-            summaryPermission: "MANAGER",
+            summaryPermission: 'MANAGER',
             tabularDataId: tabularData.id,
-            type: "DATETIME_COLUMN"
+            type: 'DATETIME'
           }
         });
         continue;
@@ -274,20 +289,20 @@ export class DatasetsService {
       // create a string column
       await this.columnModel.create({
         data: {
-          dataPermission: "MANAGER",
+          dataPermission: 'MANAGER',
           name: col.name,
           nullable: col.nullCount() != 0,
           stringColumnValidation: {
-            min: 0,
+            minLength: 0
           },
           stringData: col.toArray(),
           summary: {
             count: col.len(),
             notNullCount: col.len() - col.nullCount()
           },
-          summaryPermission: "MANAGER",
+          summaryPermission: 'MANAGER',
           tabularDataId: tabularData.id,
-          type: "STRING_COLUMN"
+          type: 'STRING'
         }
       });
     }
@@ -305,25 +320,25 @@ export class DatasetsService {
   }
 
   async deleteDataset(datasetId: string, currentUserId: string) {
-    const dataset = await this.canModifyDataset(datasetId, currentUserId)
+    const dataset = await this.canModifyDataset(datasetId, currentUserId);
 
     const deleteTabularData = this.tabularDataModel.delete({
       where: {
         datasetId: dataset.id
       }
-    })
+    });
 
     const deleteColumns = this.columnModel.deleteMany({
       where: {
         tabularDataId: (await deleteTabularData).id
       }
-    })
+    });
 
     const deleteTargetDataset = this.datasetModel.delete({
       where: {
         id: dataset.id
       }
-    })
+    });
 
     // need to update all users that are managers of this dataset
     const managersToUpdate = await this.userModel.findMany({
@@ -332,20 +347,22 @@ export class DatasetsService {
           has: dataset.id
         }
       }
-    })
+    });
 
-    const updateManagers = []
+    const updateManagers = [];
 
     for (let manager of managersToUpdate) {
-      let newDatasetId = manager.datasetId.filter((val) => val !== dataset.id)
-      updateManagers.push(this.userModel.update({
-        data: {
-          datasetId: newDatasetId
-        },
-        where: {
-          id: manager.id
-        }
-      }))
+      let newDatasetId = manager.datasetId.filter((val) => val !== dataset.id);
+      updateManagers.push(
+        this.userModel.update({
+          data: {
+            datasetId: newDatasetId
+          },
+          where: {
+            id: manager.id
+          }
+        })
+      );
     }
 
     return await this.prisma.$transaction([deleteTabularData, deleteColumns, ...updateManagers, deleteTargetDataset]);
@@ -377,7 +394,7 @@ export class DatasetsService {
       throw new NotFoundException();
     }
     if (!dataset.isReadyToShare && !(currentUserIduserId in dataset.managerIds)) {
-      throw new ForbiddenException("The dataset is not ready for share!");
+      throw new ForbiddenException('The dataset is not ready for share!');
     }
 
     return dataset;
@@ -386,14 +403,16 @@ export class DatasetsService {
   async mutateColumnType(columnId: string, currentUserId: string, colType: ColumnType) {
     const col = await this.canModifyColumn(columnId, currentUserId);
     if (col.type === colType) {
-      throw new ConflictException("Cannot change column type! Input column type is the same as the current column type!")
+      throw new ConflictException(
+        'Cannot change column type! Input column type is the same as the current column type!'
+      );
     }
     // we need to know current column datatype
     // get the corresponding data value array and store it as a polars series
     let data;
     let removeFromCol;
     switch (col.type) {
-      case "BOOLEAN_COLUMN":
+      case 'BOOLEAN':
         data = pl.Series(col.booleanData);
         removeFromCol = this.columnModel.update({
           data: {
@@ -408,7 +427,7 @@ export class DatasetsService {
           }
         });
         break;
-      case "STRING_COLUMN":
+      case 'STRING':
         data = pl.Series(col.stringData);
         removeFromCol = this.columnModel.update({
           data: {
@@ -418,9 +437,9 @@ export class DatasetsService {
           where: {
             id: col.id
           }
-        })
+        });
         break;
-      case "INT_COLUMN":
+      case 'INT':
         data = pl.Series(col.intData);
         removeFromCol = this.columnModel.update({
           data: {
@@ -433,9 +452,9 @@ export class DatasetsService {
           where: {
             id: col.id
           }
-        })
+        });
         break;
-      case "FLOAT_COLUMN":
+      case 'FLOAT':
         data = pl.Series(col.floatData);
         removeFromCol = this.columnModel.update({
           data: {
@@ -448,9 +467,9 @@ export class DatasetsService {
           where: {
             id: col.id
           }
-        })
+        });
         break;
-      case "ENUM_COLUMN":
+      case 'ENUM':
         data = pl.Series(col.enumData);
         removeFromCol = this.columnModel.update({
           data: {
@@ -463,9 +482,9 @@ export class DatasetsService {
           where: {
             id: col.id
           }
-        })
+        });
         break;
-      case "DATETIME_COLUMN":
+      case 'DATETIME':
         data = pl.Series(col.datetimeData);
         removeFromCol = this.columnModel.update({
           data: {
@@ -478,15 +497,15 @@ export class DatasetsService {
           where: {
             id: col.id
           }
-        })
+        });
         break;
     }
 
     // one more switch to do pl.series type casting .cast(type, strict = true)
     // if the cast is passed, add new data, summary, and validation to the column
-    let addToCol
+    let addToCol;
     switch (colType) {
-      case "BOOLEAN_COLUMN":
+      case 'BOOLEAN':
         data = data.cast(pl.Bool, true);
         addToCol = this.columnModel.update({
           data: {
@@ -505,14 +524,14 @@ export class DatasetsService {
           where: {
             id: col.id
           }
-        })
+        });
         break;
-      case "STRING_COLUMN":
+      case 'STRING':
         data = data.cast(pl.Utf8, true);
         addToCol = this.columnModel.update({
           data: {
             stringColumnValidation: {
-              min: 0
+              minLength: 0
             },
             stringData: data.toArray(),
             summary: {
@@ -523,9 +542,9 @@ export class DatasetsService {
           where: {
             id: col.id
           }
-        })
+        });
         break;
-      case "INT_COLUMN":
+      case 'INT':
         data = data.cast(pl.Int64, true);
         addToCol = this.columnModel.update({
           data: {
@@ -552,9 +571,9 @@ export class DatasetsService {
           where: {
             id: col.id
           }
-        })
+        });
         break;
-      case "FLOAT_COLUMN":
+      case 'FLOAT':
         data = data.cast(pl.Float64, true);
         addToCol = this.columnModel.update({
           data: {
@@ -564,7 +583,8 @@ export class DatasetsService {
               min: data.min()
             },
             summary: {
-              count: data.len(), floatSummary: {
+              count: data.len(),
+              floatSummary: {
                 max: data.max(),
                 mean: data.mean(),
                 median: data.median(),
@@ -578,9 +598,9 @@ export class DatasetsService {
           where: {
             id: col.id
           }
-        })
+        });
         break;
-      case "ENUM_COLUMN":
+      case 'ENUM':
         data = data.cast(pl.Utf8, true);
         addToCol = this.columnModel.update({
           data: {
@@ -598,35 +618,34 @@ export class DatasetsService {
           where: {
             id: col.id
           }
-        })
+        });
         break;
-      case "DATETIME_COLUMN":
+      case 'DATETIME':
         data = data.cast(pl.Date, true);
         addToCol = this.columnModel.update({
           data: {
             datetimeColumnValidation: {
               max: new Date(),
-              min: "1970-01-01",
-              passISO: true
+              min: '1970-01-01'
             },
             datetimeData: data.toArray(),
             summary: {
               count: data.len(),
               datetimeSummary: {
                 max: new Date(),
-                min: "1970-01-01"
+                min: '1970-01-01'
               },
               notNullCount: data.len() - data.nullCount()
-            },
+            }
           },
           where: {
             id: col.id
           }
-        })
+        });
         break;
     }
 
-    return await this.prisma.$transaction([removeFromCol, addToCol]);
+    return (await this.prisma.$transaction([removeFromCol, addToCol])) as unknown[];
   }
 
   async removeManager(datasetId: string, managerId: string, managerIdToRemove: string) {
@@ -639,7 +658,7 @@ export class DatasetsService {
     });
 
     if (!managerToRemove) {
-      throw new NotFoundException(`Manager with id ${managerIdToRemove} is not found!`)
+      throw new NotFoundException(`Manager with id ${managerIdToRemove} is not found!`);
     }
 
     const newManagerIds = dataset.managerIds.filter((val) => val != managerIdToRemove);
@@ -651,7 +670,7 @@ export class DatasetsService {
       where: {
         id: datasetId
       }
-    })
+    });
 
     const newDatasetIds = managerToRemove.datasetId.filter((val) => val != datasetId);
 
@@ -662,7 +681,7 @@ export class DatasetsService {
       where: {
         id: managerIdToRemove
       }
-    })
+    });
 
     return await this.prisma.$transaction([updateDatasetManagerIds, updateManagerToRemoveDatasetIds]);
   }
@@ -670,24 +689,25 @@ export class DatasetsService {
   async setReadyToShare(datasetId: string, currentUserId: string) {
     const dataset = await this.canModifyDataset(datasetId, currentUserId);
     if (dataset.isReadyToShare) {
-      throw new ForbiddenException("This dataset is not found or is already set to ready to share!");
+      throw new ForbiddenException('This dataset is not found or is already set to ready to share!');
     }
 
     const updateDataset = this.datasetModel.update({
       data: {
         isReadyToShare: true
-      }, where: {
+      },
+      where: {
         id: datasetId
       }
-    })
-    return await this.prisma.$transaction([updateDataset])
+    });
+    return await this.prisma.$transaction([updateDataset]);
   }
 
   async toggleColumnNullable(columnId: string, currentUserId: string) {
     const col = await this.canModifyColumn(columnId, currentUserId);
 
     if (col.nullable && col.summary.notNullCount !== col.summary.count) {
-      throw new ForbiddenException("Cannot set this column to not nullable as it contains null values already!")
+      throw new ForbiddenException('Cannot set this column to not nullable as it contains null values already!');
     }
 
     const updateColumnNullable = this.columnModel.update({
@@ -707,7 +727,7 @@ export class DatasetsService {
       where: {
         id: columnId
       }
-    })
+    });
     if (!col) {
       throw new NotFoundException();
     }
@@ -739,18 +759,21 @@ export class DatasetsService {
     if (!(currentUserId in dataset.managerIds)) {
       throw new ForbiddenException('Only managers can modify this dataset!');
     }
-    return dataset
+    return dataset;
   }
 
   private primaryKeyCheck(primaryKeys: string[], df: pl.DataFrame): boolean {
     for (let key of primaryKeys) {
       const col = df.getColumn(key);
       if (col.nullCount() > 0) {
-        return false
+        return false;
       }
     }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const checkPrimaryKeysArray: boolean[] = df.select(...primaryKeys).isUnique().toArray();
+    const checkPrimaryKeysArray: boolean[] = df
+      .select(...primaryKeys)
+      .isUnique()
+      .toArray();
     return checkPrimaryKeysArray.reduce((prev, curr) => prev && curr);
   }
 }
